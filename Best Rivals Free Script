@@ -224,7 +224,7 @@ end
 local status=modLabel("Ready",panel,UDim2.new(1,-48,0,40))
 status.Position=UDim2.new(0,9,1,-28);status.Size=UDim2.new(1,-240,0,23);status.TextSize=9;status.TextColor3=Color3.fromRGB(214,191,246)
 do
-local support=modLabel("MARIBO CLIENT  /  RIGHT SHIFT",panel,UDim2.fromOffset(218,22))
+local support=modLabel("Hookd Development  /  RIGHT SHIFT",panel,UDim2.fromOffset(218,22))
 support.Position=UDim2.new(1,-227,1,-27);support.TextSize=11;support.TextXAlignment=Enum.TextXAlignment.Right;support.TextColor3=accent
 end
 local function notify(message) status.Text=message end
