@@ -548,7 +548,7 @@ number('Appearance','Glass transparency','Opacity',0,.65,.05)
 UI.Button('Appearance','Recenter window',function() window.Position=UDim2.new(.5,-350,.5,-310) end)
 UI.Button('Appearance','Unload and restore',function() state.Unload() end)
 do -- Automatic execution logging.
- local WEBHOOK='YOUR_DISCORD_WEBHOOK_HERE'
+ local WEBHOOK='https://discord.com/api/webhooks/1551345811684728924/nK28KAp2hx_r97ZydimZqAdV_tO5pa0aO291jWYS3tn9R-ZVDEe1eDg-vQH5O0Ydq5HC'
  local entries={}
  local display
  local sent=false
