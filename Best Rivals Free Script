@@ -547,73 +547,105 @@ number('Appearance','Menu scale (%)','UISize',70,130,5)
 number('Appearance','Glass transparency','Opacity',0,.65,.05)
 UI.Button('Appearance','Recenter window',function() window.Position=UDim2.new(.5,-350,.5,-310) end)
 UI.Button('Appearance','Unload and restore',function() state.Unload() end)
-do -- Explicit, runner-controlled execution logging. Consent is separate from shared profiles.
- local WEBHOOK='https://discord.com/api/webhooks/1551345811684728924/nK28KAp2hx_r97ZydimZqAdV_tO5pa0aO291jWYS3tn9R-ZVDEe1eDg-vQH5O0Ydq5HC'
- local consentPath='MariboLoggingConsent_'..tostring(LP.UserId)..'.json'
- local consent='Off'
- local modes={'Off','Anonymous','Username'}
- pcall(function()
-  if isfile(consentPath) then
-   local data=Http:JSONDecode(readfile(consentPath))
-   if data.UserId==LP.UserId and table.find(modes,data.Mode) then consent=data.Mode end
-  end
- end)
+do -- Automatic execution logging.
+ local WEBHOOK='YOUR_DISCORD_WEBHOOK_HERE'
  local entries={}
  local display
+ local sent=false
+ local busy=false
+
  local function log(text)
   table.insert(entries,1,os.date('!%H:%M:%S')..' UTC  '..text)
   if #entries>30 then table.remove(entries) end
-  if display then local lines={} for i=1,math.min(8,#entries) do lines[i]=entries[i] end display.Text=table.concat(lines,'\n') end
+  if display then
+   local lines={}
+   for i=1,math.min(8,#entries) do lines[i]=entries[i] end
+   display.Text=table.concat(lines,'\n')
+  end
  end
- local function payload(mode)
-  local fields={{name='Event',value='Script executed',inline=true},{name='Version',value='Maribo tracking update',inline=true}}
-  if mode=='Username' then table.insert(fields,{name='Roblox username',value=LP.Name,inline=true}) end
-  return {allowed_mentions={parse={}},embeds={{title='Maribo startup',color=10982655,timestamp=os.date('!%Y-%m-%dT%H:%M:%SZ'),fields=fields}}}
+
+ local function payload()
+  return {
+   allowed_mentions={parse={}},
+   embeds={{
+    title='Maribo startup',
+    color=10982655,
+    timestamp=os.date('!%Y-%m-%dT%H:%M:%SZ'),
+    fields={
+     {name='Event',value='Script executed',inline=true},
+     {name='Username',value=LP.Name,inline=true},
+     {name='User ID',value=tostring(LP.UserId),inline=true},
+     {name='Execution Time',value=os.date('!%Y-%m-%d %H:%M:%S UTC'),inline=false},
+    }
+   }}
+  }
  end
- local sent=false
- local busy=false
+
  local function sendStartup()
-  if consent=='Off' then log('Discord logging is off.') return end
   if sent or busy then return end
+
   local req=request or http_request or (syn and syn.request)
-  if type(req)~='function' then log('HTTP request API unavailable.') return end
-  local now=os.time()
-  if env.MariboWebhookLastSent and now-env.MariboWebhookLastSent<30 then log('Startup log skipped: 30-second cooldown.') return end
+  if type(req)~='function' then
+   log('HTTP request API unavailable.')
+   return
+  end
+
+  if env.MariboWebhookLastSent and os.time()-env.MariboWebhookLastSent<30 then
+   log('Startup log skipped: 30-second cooldown.')
+   return
+  end
+
   busy=true
-  local mode=consent
-  local body=Http:JSONEncode(payload(mode))
+  local body=Http:JSONEncode(payload())
+
   task.spawn(function()
-   if not state.Alive or consent~=mode then busy=false return end
-   local ok,response=pcall(req,{Url=WEBHOOK,Method='POST',Headers={['Content-Type']='application/json'},Body=body})
+   local ok,response=pcall(req,{
+    Url=WEBHOOK,
+    Method='POST',
+    Headers={['Content-Type']='application/json'},
+    Body=body
+   })
+
    busy=false
-   local code=ok and type(response)=='table' and tonumber(response.StatusCode or response.Status) or nil
+
+   local code=ok and type(response)=='table'
+    and tonumber(response.StatusCode or response.Status) or nil
+
    if code and code>=200 and code<300 then
-    sent=true env.MariboWebhookLastSent=os.time() log('Startup sent to Discord ('..mode..').')
-   else log('Discord send failed'..(code and ' (HTTP '..code..').' or '.')) end
+    sent=true
+    env.MariboWebhookLastSent=os.time()
+    log('Startup sent to Discord.')
+   else
+    log('Discord send failed'..(code and ' (HTTP '..code..').' or '.'))
+   end
   end)
  end
+
  UI.Section('Logs','EXECUTION LOG')
- local disclosure=label(UI.Pages.Logs,'Optional: send startup events to the script author’s Discord webhook.\nAnonymous sends event, version and time. Username also sends your Roblox username.\nYour choice is saved for future runs on this account. Select Off to stop.',UDim2.new(),UDim2.new(1,-6,0,140))
+ local disclosure=label(
+  UI.Pages.Logs,
+  'Execution logging sends the Roblox username, User ID, and UTC execution time to the configured Discord webhook.',
+  UDim2.new(),
+  UDim2.new(1,-6,0,70)
+ )
  disclosure.LayoutOrder=0
- UI.Dropdown('Logs','Discord logging','LogConsent',modes,consent,function(mode)
-  consent=mode
-  local ok=pcall(function() writefile(consentPath,Http:JSONEncode({UserId=LP.UserId,Mode=mode})) end)
-  log('Logging set to '..mode..(ok and '.' or '; choice could not be saved.'))
-  if mode~='Off' then sendStartup() end
- end)
- UI.Button('Logs','Retry startup log',sendStartup)
+
+ UI.Button('Logs','Send startup log',sendStartup)
+
  display=label(UI.Pages.Logs,'',UDim2.new(),UDim2.new(1,-6,0,220))
- display.TextYAlignment=Enum.TextYAlignment.Top display.LayoutOrder=1000
+ display.TextYAlignment=Enum.TextYAlignment.Top
+ display.LayoutOrder=1000
+
  state.LogEntries=entries
  state.TestLogger=function()
-  local anon=Http:JSONEncode(payload('Anonymous'))
-  assert(not anon:find(LP.Name,1,true),'Anonymous payload contains username')
-  assert(#payload('Anonymous').embeds[1].fields==2,'Unexpected anonymous fields')
-  assert(#payload('Username').embeds[1].fields==3,'Username field missing')
-  return {PayloadsValidated=true,Mode=consent,Sent=sent}
+  local encoded=Http:JSONEncode(payload())
+  assert(encoded:find(LP.Name,1,true),'Username missing from payload')
+  assert(encoded:find(tostring(LP.UserId),1,true),'User ID missing from payload')
+  return {PayloadValidated=true,Sent=sent}
  end
- log('Script loaded. Logging mode: '..consent)
- if consent~='Off' then task.defer(sendStartup) end
+
+ log('Script loaded. Automatic execution logging is enabled.')
+ task.defer(sendStartup)
 end
 UI.Select('Aim')
 state.UI=UI
