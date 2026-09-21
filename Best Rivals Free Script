@@ -157,7 +157,7 @@ local function modButton(txt,parent)
 end
 
 local uiScale=make('UIScale',{Scale=1},panel)
-local header=modLabel("MARIBO",panel,UDim2.fromOffset(118,24))
+local header=modLabel("Hookd Dev",panel,UDim2.fromOffset(118,24))
 header.Position=UDim2.fromOffset(37,5);header.Font=Enum.Font.Code;header.TextSize=14;header.TextColor3=accent;header.Active=true
 do
 local badge=modLabel("M",panel,UDim2.fromOffset(24,24))
