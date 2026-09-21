@@ -160,7 +160,7 @@ local uiScale=make('UIScale',{Scale=1},panel)
 local header=modLabel("Hookd Dev",panel,UDim2.fromOffset(118,24))
 header.Position=UDim2.fromOffset(37,5);header.Font=Enum.Font.Code;header.TextSize=14;header.TextColor3=accent;header.Active=true
 do
-local badge=modLabel("M",panel,UDim2.fromOffset(24,24))
+local badge=modLabel("H",panel,UDim2.fromOffset(24,24))
 badge.Position=UDim2.fromOffset(7,5);badge.Font=Enum.Font.GothamBlack;badge.TextSize=19;badge.TextColor3=accent
 local minimize=modButton("X",panel);minimize.Size=UDim2.fromOffset(24,24);minimize.Position=UDim2.new(1,-29,0,5)
 on(minimize.Activated,function() panel.Visible=false end)
